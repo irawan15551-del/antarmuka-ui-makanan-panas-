@@ -1,14 +1,14 @@
 <?php
 
+use App\Http\Controllers\ActivityController;
+use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ProductController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\MachineConfigurationController;
-use App\Http\Controllers\ActivityController;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\SlotMappingController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
-
 
 /*
 |--------------------------------------------------------------------------
@@ -19,7 +19,6 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return redirect()->route('login');
 });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -35,7 +34,6 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])
         ->name('login.process');
 });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -54,7 +52,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->name('dashboard');
 
-
     /*
     |--------------------------------------------------------------------------
     | Logout
@@ -63,7 +60,6 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout'])
         ->name('logout');
-
 
     /*
     |--------------------------------------------------------------------------
@@ -82,7 +78,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin-operator-test', function () {
         return 'Halaman Admin dan Operator berhasil diakses.';
     })->middleware('role:admin,operator');
-
 
     /*
     |--------------------------------------------------------------------------
@@ -106,7 +101,6 @@ Route::middleware('auth')->group(function () {
 
         Route::resource('products', ProductController::class);
 
-
         /*
         |--------------------------------------------------------------------------
         | User Management
@@ -115,7 +109,6 @@ Route::middleware('auth')->group(function () {
 
         Route::resource('users', UserController::class)
             ->except(['show']);
-
 
         /*
         |--------------------------------------------------------------------------
@@ -127,17 +120,16 @@ Route::middleware('auth')->group(function () {
             return view('restock.index');
         })->name('restock.index');
 
-
         /*
         |--------------------------------------------------------------------------
         | Slot Mapping
         |--------------------------------------------------------------------------
         */
 
-        Route::get('/slots', function () {
-            return view('slots.index');
-        })->name('slots.index');
-
+        Route::get('/slots', [SlotMappingController::class, 'index'])
+            ->name('slots.index');
+        Route::put('/slots', [SlotMappingController::class, 'update'])
+            ->name('slots.update');
 
         /*
         |--------------------------------------------------------------------------
@@ -149,9 +141,8 @@ Route::middleware('auth')->group(function () {
             ->only([
                 'index',
                 'show',
-                'update'
+                'update',
             ]);
-
 
         /*
         |--------------------------------------------------------------------------
@@ -159,13 +150,15 @@ Route::middleware('auth')->group(function () {
         |--------------------------------------------------------------------------
         */
 
+        Route::get('/machine/confirm', [MachineConfigurationController::class, 'confirm'])
+            ->name('machine.confirm');
+
         Route::resource('machine', MachineConfigurationController::class)
             ->only([
                 'index',
                 'store',
-                'show'
+                'show',
             ]);
-
 
         /*
         |--------------------------------------------------------------------------
@@ -175,7 +168,7 @@ Route::middleware('auth')->group(function () {
 
         Route::resource('activities', ActivityController::class)
             ->only([
-                'index'
+                'index',
             ]);
 
     });
