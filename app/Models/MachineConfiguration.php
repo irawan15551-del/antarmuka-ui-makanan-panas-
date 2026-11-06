@@ -15,5 +15,6 @@ class MachineConfiguration extends Model
 
     protected $casts = [
         'payload' => 'array',
+        'response' => 'array',
     ];
 }
