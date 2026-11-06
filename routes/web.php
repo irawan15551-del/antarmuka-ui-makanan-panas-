@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
+
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductController;
@@ -7,8 +9,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\MachineConfigurationController;
 use App\Http\Controllers\ActivityController;
-use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\KioskController;
 
 /*
 |--------------------------------------------------------------------------
@@ -29,11 +30,16 @@ Route::get('/', function () {
 
 Route::middleware('guest')->group(function () {
 
-    Route::get('/login', [AuthController::class, 'showLogin'])
-        ->name('login');
+    Route::get('/login', [
+        AuthController::class,
+        'showLogin',
+    ])->name('login');
 
-    Route::post('/login', [AuthController::class, 'login'])
-        ->name('login.process');
+    Route::post('/login', [
+        AuthController::class,
+        'login',
+    ])->name('login.process');
+
 });
 
 
@@ -51,8 +57,10 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::get('/dashboard', [DashboardController::class, 'index'])
-        ->name('dashboard');
+    Route::get('/dashboard', [
+        DashboardController::class,
+        'index',
+    ])->name('dashboard');
 
 
     /*
@@ -61,8 +69,10 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::post('/logout', [AuthController::class, 'logout'])
-        ->name('logout');
+    Route::post('/logout', [
+        AuthController::class,
+        'logout',
+    ])->name('logout');
 
 
     /*
@@ -73,15 +83,105 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/admin-test', function () {
         return 'Halaman Admin berhasil diakses.';
-    })->middleware('role:admin');
+    })
+        ->middleware('role:admin')
+        ->name('admin.test');
 
     Route::get('/operator-test', function () {
         return 'Halaman Operator berhasil diakses.';
-    })->middleware('role:operator');
+    })
+        ->middleware('role:operator')
+        ->name('operator.test');
 
     Route::get('/admin-operator-test', function () {
         return 'Halaman Admin dan Operator berhasil diakses.';
-    })->middleware('role:admin,operator');
+    })
+        ->middleware('role:admin,operator')
+        ->name('admin-operator.test');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Product Management - Admin & Operator
+    |--------------------------------------------------------------------------
+    */
+
+    Route::middleware('role:admin,operator')->group(function () {
+
+        Route::get('/products', [
+            ProductController::class,
+            'index',
+        ])->name('products.index');
+
+        Route::get('/products/{product}', [
+            ProductController::class,
+            'show',
+        ])
+            ->whereNumber('product')
+            ->name('products.show');
+
+    });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Product Management - Admin Only
+    |--------------------------------------------------------------------------
+    */
+
+    Route::middleware('role:admin')->group(function () {
+
+        Route::get('/products/create', [
+            ProductController::class,
+            'create',
+        ])->name('products.create');
+
+        Route::post('/products', [
+            ProductController::class,
+            'store',
+        ])->name('products.store');
+
+        Route::get('/products/deleted', [
+            ProductController::class,
+            'deleted',
+        ])->name('products.deleted');
+
+        Route::post('/products/{id}/restore', [
+            ProductController::class,
+            'restore',
+        ])
+            ->whereNumber('id')
+            ->name('products.restore');
+
+        Route::get('/products/{product}/edit', [
+            ProductController::class,
+            'edit',
+        ])
+            ->whereNumber('product')
+            ->name('products.edit');
+
+        Route::put('/products/{product}', [
+            ProductController::class,
+            'update',
+        ])
+            ->whereNumber('product')
+            ->name('products.update');
+
+        Route::patch('/products/{product}', [
+            ProductController::class,
+            'update',
+        ])
+            ->whereNumber('product')
+            ->name('products.update.patch');
+
+        Route::delete('/products/{product}', [
+            ProductController::class,
+            'destroy',
+        ])
+            ->whereNumber('product')
+            ->name('products.destroy');
+
+    });
 
 
     /*
@@ -94,32 +194,7 @@ Route::middleware('auth')->group(function () {
 
         /*
         |--------------------------------------------------------------------------
-        | Product Management
-        |--------------------------------------------------------------------------
-        */
-
-        Route::get('/products/deleted', [ProductController::class, 'deleted'])
-            ->name('products.deleted');
-
-        Route::post('/products/{id}/restore', [ProductController::class, 'restore'])
-            ->name('products.restore');
-
-        Route::resource('products', ProductController::class);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | User Management
-        |--------------------------------------------------------------------------
-        */
-
-        Route::resource('users', UserController::class)
-            ->except(['show']);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Restock / Stock
+        | Restock
         |--------------------------------------------------------------------------
         */
 
@@ -149,7 +224,7 @@ Route::middleware('auth')->group(function () {
             ->only([
                 'index',
                 'show',
-                'update'
+                'update',
             ]);
 
 
@@ -159,12 +234,34 @@ Route::middleware('auth')->group(function () {
         |--------------------------------------------------------------------------
         */
 
-        Route::resource('machine', MachineConfigurationController::class)
-            ->only([
-                'index',
-                'store',
-                'show'
-            ]);
+        Route::get('/machine', [
+            MachineConfigurationController::class,
+            'index',
+        ])->name('machine.index');
+
+        Route::post('/machine', [
+            MachineConfigurationController::class,
+            'store',
+        ])->name('machine.store');
+
+        /*
+         * Route konfirmasi diletakkan sebelum machine/{machine}.
+         * Parameter ID bersifat opsional.
+         */
+
+        Route::get('/machine/confirm/{id?}', [
+            MachineConfigurationController::class,
+            'confirm',
+        ])
+            ->whereNumber('id')
+            ->name('machine.confirm');
+
+        Route::get('/machine/{machine}', [
+            MachineConfigurationController::class,
+            'show',
+        ])
+            ->whereNumber('machine')
+            ->name('machine.show');
 
 
         /*
@@ -173,10 +270,69 @@ Route::middleware('auth')->group(function () {
         |--------------------------------------------------------------------------
         */
 
-        Route::resource('activities', ActivityController::class)
-            ->only([
-                'index'
-            ]);
+        Route::get('/activities', [
+            ActivityController::class,
+            'index',
+        ])->name('activities.index');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Kiosk Touchscreen
+        |--------------------------------------------------------------------------
+        */
+
+        Route::prefix('kiosk')
+            ->name('kiosk.')
+            ->controller(KioskController::class)
+            ->group(function () {
+
+                Route::get('/splash', 'splash')
+                    ->name('splash');
+
+                Route::get('/dashboard', 'dashboard')
+                    ->name('dashboard');
+
+                Route::get('/products', 'products')
+                    ->name('products');
+
+                Route::get('/product-detail', 'productDetail')
+                    ->name('product-detail');
+
+                Route::get('/machine-status', 'machineStatus')
+                    ->name('machine-status');
+
+                Route::get('/configuration', 'configuration')
+                    ->name('configuration');
+
+                Route::post('/configuration-result', 'configurationResult')
+                    ->name('configuration-result');
+
+                Route::get(
+                    '/configuration-result/{id}',
+                    'showConfigurationResult'
+                )
+                    ->whereNumber('id')
+                    ->name('configuration-result.show');
+
+                Route::get('/settings', 'settings')
+                    ->name('settings');
+
+            });
+
+    });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | User Management - Admin Only
+    |--------------------------------------------------------------------------
+    */
+
+    Route::middleware('role:admin')->group(function () {
+
+        Route::resource('users', UserController::class)
+            ->except(['show']);
 
     });
 

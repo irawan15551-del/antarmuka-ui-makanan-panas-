@@ -4,23 +4,36 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class ProductController extends Controller
 {
     /**
-     * Daftar produk aktif/belum dihapus.
+     * Daftar produk yang belum dihapus.
+     * Mendukung pencarian berdasarkan nama produk.
      */
-    public function index()
+    public function index(Request $request): View
     {
-        $products = Product::latest()->paginate(10);
+        $query = Product::query()->latest();
+
+        // Pencarian berdasarkan nama produk.
+        if ($request->filled('search')) {
+            $search = trim($request->input('search'));
+
+            $query->where('name', 'like', '%' . $search . '%');
+        }
+
+        // Pagination tetap mempertahankan kata pencarian.
+        $products = $query->paginate(10)->withQueryString();
 
         return view('products.index', compact('products'));
     }
 
     /**
-     * Daftar produk yang sudah soft delete.
+     * Daftar produk yang sudah di-soft delete.
      */
-    public function deleted()
+    public function deleted(): View
     {
         $products = Product::onlyTrashed()
             ->latest('deleted_at')
@@ -30,17 +43,17 @@ class ProductController extends Controller
     }
 
     /**
-     * Form tambah produk.
+     * Menampilkan form tambah produk.
      */
-    public function create()
+    public function create(): View
     {
         return view('products.create');
     }
 
     /**
-     * Simpan produk baru.
+     * Menyimpan produk baru.
      */
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -51,13 +64,17 @@ class ProductController extends Controller
             'status' => ['required', 'in:active,inactive'],
         ], [
             'name.required' => 'Nama produk wajib diisi.',
+            'name.string' => 'Nama produk harus berupa teks.',
+            'name.max' => 'Nama produk maksimal 255 karakter.',
             'price.required' => 'Harga produk wajib diisi.',
             'price.numeric' => 'Harga harus berupa angka.',
             'price.min' => 'Harga tidak boleh kurang dari 0.',
             'stock.required' => 'Stok wajib diisi.',
             'stock.integer' => 'Stok harus berupa angka bulat.',
             'stock.min' => 'Stok tidak boleh kurang dari 0.',
+            'image.max' => 'Alamat gambar maksimal 500 karakter.',
             'status.required' => 'Status produk wajib dipilih.',
+            'status.in' => 'Status produk tidak valid.',
         ]);
 
         Product::create($validated);
@@ -68,26 +85,28 @@ class ProductController extends Controller
     }
 
     /**
-     * Detail produk.
+     * Menampilkan detail produk.
      */
-    public function show(Product $product)
+    public function show(Product $product): View
     {
         return view('products.show', compact('product'));
     }
 
     /**
-     * Form edit produk.
+     * Menampilkan form edit produk.
      */
-    public function edit(Product $product)
+    public function edit(Product $product): View
     {
         return view('products.edit', compact('product'));
     }
 
     /**
-     * Update produk.
+     * Memperbarui data produk.
      */
-    public function update(Request $request, Product $product)
-    {
+    public function update(
+        Request $request,
+        Product $product
+    ): RedirectResponse {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
@@ -97,13 +116,17 @@ class ProductController extends Controller
             'status' => ['required', 'in:active,inactive'],
         ], [
             'name.required' => 'Nama produk wajib diisi.',
+            'name.string' => 'Nama produk harus berupa teks.',
+            'name.max' => 'Nama produk maksimal 255 karakter.',
             'price.required' => 'Harga produk wajib diisi.',
             'price.numeric' => 'Harga harus berupa angka.',
             'price.min' => 'Harga tidak boleh kurang dari 0.',
             'stock.required' => 'Stok wajib diisi.',
             'stock.integer' => 'Stok harus berupa angka bulat.',
             'stock.min' => 'Stok tidak boleh kurang dari 0.',
+            'image.max' => 'Alamat gambar maksimal 500 karakter.',
             'status.required' => 'Status produk wajib dipilih.',
+            'status.in' => 'Status produk tidak valid.',
         ]);
 
         $product->update($validated);
@@ -114,9 +137,9 @@ class ProductController extends Controller
     }
 
     /**
-     * Soft delete produk.
+     * Menghapus produk menggunakan soft delete.
      */
-    public function destroy(Product $product)
+    public function destroy(Product $product): RedirectResponse
     {
         $product->delete();
 
@@ -126,9 +149,9 @@ class ProductController extends Controller
     }
 
     /**
-     * Restore produk yang sudah di-soft delete.
+     * Memulihkan produk yang sudah di-soft delete.
      */
-    public function restore($id)
+    public function restore($id): RedirectResponse
     {
         $product = Product::onlyTrashed()->findOrFail($id);
 
